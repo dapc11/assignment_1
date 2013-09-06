@@ -17,9 +17,8 @@ do
 		if [[ "$@" != *-d* ]]
 		then
 			NROFHOURS=$OPTARG
-			echo $NROFHOURS
 		else
-			exit 1;
+			exit $?;
 		fi	
 	;;
 	d)
@@ -27,52 +26,58 @@ do
 		then
 			NROFDAYS=$OPTARG
 		else
-			exit 1;
+			exit $?;
 		fi	
 	;;
 	c)
 		if [[ $@ != *'-2'* && $@ != *'-r'* && $@ != *'-F'* && $@ != *'-t'* && $@ != *'-f'* ]]; then
 			FUNCTION='c' >&2
 		else
-			exit 1;
+			exit $?;
 		fi
 	;;
 	2)
 		if [[ $@ != *'-c'* && $@ != *'-r'* && $@ != *'-F'* && $@ != *'-t'* && $@ != *'-f'* ]]; then
 			FUNCTION='2' >&2
 		else
-			exit 1;
+			exit $?;
 		fi
 	;;
 	r)
 		if [[ $@ != *'-2'* && $@ != *'-c'* && $@ != *'-F'* && $@ != *'-t'* && $@ != *'-f'* ]]; then
 			FUNCTION='r' >&2
 		else
-			exit 1;
+			exit $?;
 		fi
 	;;
 	F)
 		if [[ $@ != *'-2'* && $@ != *'-r'* && $@ != *'-c'* && $@ != *'-t'* && $@ != *'-f'* ]]; then
 			FUNCTION='F' >&2
 		else
-			exit 1;
+			exit $?;
 		fi
 	;;
 	t)
 		if [[ $@ != *'-2'* && $@ != *'-r'* && $@ != *'-F'* && $@ != *'-c'* && $@ != *'-f'* ]]; then
 			FUNCTION='t' >&2
 		else
-			exit 1;
+			exit $?;
 		fi
 	;;
 	f)
 		if [[ $@ != *'-2'* && $@ != *'-r'* && $@ != *'-F'* && $@ != *'-t'* && $@ != *'-c'* ]]; then
 			FUNCTION='f' >&2
 		else
-			exit 1;
+			exit $?;
 		fi
 	;;
 	esac
 done
 
-echo $FUNCTION
+echo 'Number of results:' $NROFRESULTS
+echo 'Number of hours:' $NROFHOURS
+echo 'Number of days:' $NROFDAYS
+echo 'Most connection attempts:' $MOSTCONNECTATTEMPTS
+echo 'Most successful connection attempts:' $MOSTSUCCESSFULATTEMPTS
+echo 'Function to run:' $FUNCTION
+echo $?
