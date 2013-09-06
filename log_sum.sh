@@ -6,6 +6,10 @@ NROFDAYS=
 MOSTCONNECTATTEMPTS=
 MOSTSUCCESSFULATTEMPTS=
 FUNCTION=
+FILENAME=
+
+for last; do true; done
+FILENAME=$last
 
 while getopts “h:n:d:c2rFtf” OPTION
 do
@@ -80,4 +84,12 @@ echo 'Number of days:' $NROFDAYS
 echo 'Most connection attempts:' $MOSTCONNECTATTEMPTS
 echo 'Most successful connection attempts:' $MOSTSUCCESSFULATTEMPTS
 echo 'Function to run:' $FUNCTION
+echo 'Filename:' $FILENAME
 echo $?
+
+getNumberOfConnectAttempts () {
+	grep -E -o '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)' $FILENAME | uniq -c | sort -rn | head -n $NROFRESULTS
+}
+
+getNumberOfConnectAttempts
+
