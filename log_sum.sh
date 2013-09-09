@@ -8,8 +8,7 @@ MOSTSUCCESSFULATTEMPTS=
 FUNCTION=
 FILENAME=
 
-for last; do true; done
-FILENAME=$last
+LASTDATE=
 
 while getopts “h:n:d:c2rFtf” OPTION
 do
@@ -78,18 +77,35 @@ do
 	esac
 done
 
-echo 'Number of results:' $NROFRESULTS
-echo 'Number of hours:' $NROFHOURS
-echo 'Number of days:' $NROFDAYS
-echo 'Most connection attempts:' $MOSTCONNECTATTEMPTS
-echo 'Most successful connection attempts:' $MOSTSUCCESSFULATTEMPTS
-echo 'Function to run:' $FUNCTION
-echo 'Filename:' $FILENAME
-echo $?
+#Shift the Option Index so that the Filename gets on position $1
+shift `expr $OPTIND - 1`
+FILENAME=$1
 
-getNumberOfConnectAttempts () {
-	grep -E -o '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)' $FILENAME | uniq -c | sort -rn | head -n $NROFRESULTS
+getDate () {
+	LASTDATE=$(grep -P -o '(([0-9][0-9])|([3][0-1])).(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec).\d{4}' $FILENAME | tail -1)
+	LASTDATE=$(echo $LASTDATE | sed -r 's/[/]+/-/g')
+	echo $LASTDATE
 }
 
-getNumberOfConnectAttempts
+setDate () {
+	STARTDATE=$(date --date "$LASTDATE -$NROFDAYS days" "+%d-%b-%Y")
+	echo $STARTDATE
+}
 
+connAtt () {
+if [[ -z "$NROFRESULTS" ]]; then
+	awk '{print $1}' $FILENAME | sort -rn | uniq -c | sort -rn | awk '{print $2 "\t" $1}'
+else
+	awk '{print $1}' $FILENAME | sort -rn | uniq -c | sort -rn | head -n $NROFRESULTS | awk '{print $2 "\t" $1}'
+fi
+}
+
+#Check if the file has a size >0
+if [ ! -s $FILENAME ]
+then
+    echo "The file $FILENAME does not exist";
+    exit 1;
+fi
+if [[ "$FUNCTION" == 'c' ]]; then
+	connAtt
+fi
