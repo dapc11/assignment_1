@@ -1,6 +1,7 @@
 #!/bin/bash
 
-NROFRESULTS=
+#Variables that will be assigned by the different arguments.
+NROFRESULTS=0
 NROFHOURS=
 NROFDAYS=
 MOSTCONNECTATTEMPTS=
@@ -8,9 +9,82 @@ MOSTSUCCESSFULATTEMPTS=
 FUNCTION=
 FILENAME=
 
-LASTDATE=
+#Temporary files
+FINALOUTPUT=final_output
+TEMPOUTPUT=temp_output
+TEMPFILE=temp_output_boundaries
 
-while getopts “h:n:d:c2rFtf” OPTION
+STARTDATE=
+ENDDATE=
+
+calcHours() {
+    STARTDATE=$(tail -1 ${FILENAME} | awk '{print $4}' | sed 's/^\[//' | sed 's/\//\-/g' | sed 's/\:/ /')
+    ENDDATE=$(date -d "$STARTDATE $NROFHOURS hours ago" +%s)
+}
+
+calcDays() {
+	STARTDATE=$(tail -1 ${FILENAME} | awk '{print $4}' | sed 's/^\[//' | sed 's/\//\-/g' | sed 's/\:/ /')
+	ENDDATE=$(date -d "$STARTDATE $NROFDAYS days ago" +%s)
+}
+
+setTimeLimit() {
+	echo
+	tac $FILENAME > $TEMPOUTPUT
+	while read row
+	do
+		rowtime=$(echo $row | awk '{print $4}' | sed 's/^\[//' | sed 's/\//\-/g' | sed 's/\:/ /')
+		rowtime=$(date -d "$rowtime" +%s)
+	if [ $rowtime -ge $ENDDATE ]; then
+    		echo $row >> ${TEMPFILE}
+	else
+		break
+	fi
+	done < $TEMPOUTPUT
+	rm $TEMPOUTPUT
+	TEMPOUTPUT=$TEMPFILE
+}
+
+#Function to limit how many rows that should be presented for the user, based on -n 
+showResults() {
+	if [ $NROFRESULTS -gt 0 ]; then
+		head -n $NROFRESULTS $FINALOUTPUT
+	else
+		cat $FINALOUTPUT
+	fi
+}
+
+#[-c|-2|-r|-F|-t|-f] 
+#The -c command, provides the user with a list over most connected ip-addresses.
+connectAttempt () {
+	awk '{print $1}' $TEMPOUTPUT | sort -rn | uniq -c | sort -rn | awk '{print $2 "\t" $1}' > $FINALOUTPUT
+	showResults
+}
+succConnectAttempt () {
+	grep "GET \/.* HTTP/1\.[01]\" 200" $TEMPOUTPUT | awk '{print $1}' | sort -rn | uniq -c | sort -rn | awk '{print $2 "\t" $1 }' > $FINALOUTPUT
+	showResults
+}
+mostCommonResultCodes () {
+	awk '{print $9, $1}' $TEMPOUTPUT | sort -rn | uniq -c | sort -rn | awk '{print $2, $3}' > $FINALOUTPUT
+	showResults
+}
+mostCommonFailCodes () {
+	grep -v "\/.* HTTP/[01]\.[01]\" 200" $TEMPOUTPUT | awk '{print $1, $9}' | sort -rn | uniq -c | sort -rn | awk '{print $3, $2}' > $FINALOUTPUT
+	showResults
+}
+bytesTransfered () {
+	awk '{print $10, $1}' $TEMPOUTPUT | sort -rn | uniq -c | sort -rn | awk '{print $3 "\t"$2}' > $FINALOUTPUT
+	showResults
+}
+
+#Check if the file has a size >0
+if [ ! -s $FILENAME ]
+then
+    echo "The file $FILENAME does not exist";
+    exit 1;
+fi
+
+#Handles the arguments that's passed into the script.
+while getopts “n:h:d:c2rFt” OPTION
 do
 	case $OPTION in
 	n)
@@ -67,45 +141,42 @@ do
 			exit $?;
 		fi
 	;;
-	f)
-		if [[ $@ != *'-2'* && $@ != *'-r'* && $@ != *'-F'* && $@ != *'-t'* && $@ != *'-c'* ]]; then
-			FUNCTION='f' >&2
-		else
-			exit $?;
-		fi
-	;;
 	esac
 done
 
-#Shift the Option Index so that the Filename gets on position $1
+#Shift the Option Index so that the filename gets on position $1
 shift `expr $OPTIND - 1`
 FILENAME=$1
 
-getDate () {
-	LASTDATE=$(grep -P -o '(([0-9][0-9])|([3][0-1])).(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec).\d{4}' $FILENAME | tail -1)
-	LASTDATE=$(echo $LASTDATE | sed -r 's/[/]+/-/g')
-	echo $LASTDATE
-}
-
-setDate () {
-	STARTDATE=$(date --date "$LASTDATE -$NROFDAYS days" "+%d-%b-%Y")
-	echo $STARTDATE
-}
-
-connAtt () {
-if [[ -z "$NROFRESULTS" ]]; then
-	awk '{print $1}' $FILENAME | sort -rn | uniq -c | sort -rn | awk '{print $2 "\t" $1}'
-else
-	awk '{print $1}' $FILENAME | sort -rn | uniq -c | sort -rn | head -n $NROFRESULTS | awk '{print $2 "\t" $1}'
-fi
-}
-
-#Check if the file has a size >0
-if [ ! -s $FILENAME ]
+if [[ -z "$FUNCTION" ]]
 then
-    echo "The file $FILENAME does not exist";
-    exit 1;
-fi
-if [[ "$FUNCTION" == 'c' ]]; then
-	connAtt
+	echo 'No flags are set.'
+	exit
+else
+	if [[ $NROFHOURS -gt 0 && $NROFHOURS -lt 24 ]]; then
+		calcHours
+		setTimeLimit	
+	elif [[ $NROFDAYS -gt 0 ]]; then
+		calcDays
+		setTimeLimit
+	else
+		cat $FILENAME > $TEMPOUTPUT	
+	fi
+	case $FUNCTION in
+	c)
+		connectAttempt
+	;;
+ 	2)
+		succConnectAttempt
+        ;;
+        r)
+		mostCommonResultCodes
+        ;;
+        F)
+		mostCommonFailCodes
+        ;;
+        t)
+		bytesTransfered
+	;;
+	esac
 fi
