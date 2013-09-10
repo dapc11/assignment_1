@@ -20,6 +20,29 @@ TEMPFILE=temp_output_boundaries
 STARTDATE=
 ENDDATE=
 
+usage() {
+cat << EOF
+Usage: $0 [-n N] [-h H | -d D] [-c | -2 | -r | -F | -t | -f] <filename>
+
+OPTIONS:
+	-n: LIMIT the number of results to N
+	
+	-d: Limit the query to the last number of days.
+	-h: Limit the query to the last number of hours (< 24)
+
+	-c: Which IP address makes the most number of connection attempts?
+	-2: Which ip address makes the most number of successful connection attempts?
+	-r: What are the most common resultcodes and where do they come from?
+	-F: What are the most common resultcodes that indicates failures (no auth, not found etc)
+		and where do they come from?
+	-t: Which IP address get the most bytes sent to them?
+	
+	
+
+EOF
+}
+
+
 clean () {
 	rm $FINALOUTPUT
 	rm $TEMPOUTPUT
@@ -175,6 +198,7 @@ FILENAME=$1
 if [[ -z "$FUNCTION" ]]
 then
 	echo 'No flags are set.'
+	usage
 	exit
 else
 	if [[ $NROFHOURS -gt 0 && $NROFHOURS -lt 24 ]]; then
