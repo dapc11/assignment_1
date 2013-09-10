@@ -2,8 +2,8 @@
 
 #Variables that will be assigned by the different arguments.
 NROFRESULTS=0
-NROFHOURS=
-NROFDAYS=
+NROFHOURS=0
+NROFDAYS=0
 MOSTCONNECTATTEMPTS=
 MOSTSUCCESSFULATTEMPTS=
 FUNCTION=
@@ -53,7 +53,7 @@ showResults() {
 	fi
 }
 
-#[-c|-2|-r|-F|-t|-f] 
+#[-c|-2|-r|-F|-t] 
 #The -c command, provides the user with a list over most connected ip-addresses.
 connectAttempt () {
 	awk '{print $1}' $TEMPOUTPUT | sort -rn | uniq -c | sort -rn | awk '{print $2 "\t" $1}' > $FINALOUTPUT
@@ -71,9 +71,24 @@ mostCommonFailCodes () {
 	grep -v "\/.* HTTP/[01]\.[01]\" 200" $TEMPOUTPUT | awk '{print $1, $9}' | sort -rn | uniq -c | sort -rn | awk '{print $3, $2}' > $FINALOUTPUT
 	showResults
 }
-bytesTransfered () {
-	awk '{print $10, $1}' $TEMPOUTPUT | sort -rn | uniq -c | sort -rn | awk '{print $3 "\t"$2}' > $FINALOUTPUT
-	showResults
+bytesTransfered () {	
+	declare -A byteArray
+	while read row
+	do
+		ip=$(echo $row | awk '{print $1}')
+		nrOfBytes=$(echo $row | awk '{print $10}')
+		if [  !  ${byteArray["$ip"]} ] 
+			then
+				byteArray[$ip]="0"
+		fi
+		byteArray["$ip"]=$(expr "${byteArray[$ip]}" + $nrOfBytes)
+	done
+
+	for i in "${!byteArray[@]}"
+	do
+		echo "$i ${byteArray[$i]}" >> ${FINALOUTPUT}
+	done
+	showResults | sort -rn -k2 | head -n 1
 }
 
 #Check if the file has a size >0
@@ -176,7 +191,7 @@ else
 		mostCommonFailCodes
         ;;
         t)
-		bytesTransfered
+		grep "GET \/.* HTTP/[01]\.[01]\" 200" $TEMPOUTPUT | bytesTransfered
 	;;
 	esac
 fi
