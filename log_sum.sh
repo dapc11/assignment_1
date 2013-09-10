@@ -10,12 +10,21 @@ FUNCTION=
 FILENAME=
 
 #Temporary files
+touch final_output
+touch temp_output
+touch temp_output_boundaries
 FINALOUTPUT=final_output
 TEMPOUTPUT=temp_output
 TEMPFILE=temp_output_boundaries
 
 STARTDATE=
 ENDDATE=
+
+clean () {
+	rm $FINALOUTPUT
+	rm $TEMPOUTPUT
+	#rm $TEMPFILE
+}	
 
 calcHours() {
     STARTDATE=$(tail -1 ${FILENAME} | awk '{print $4}' | sed 's/^\[//' | sed 's/\//\-/g' | sed 's/\:/ /')
@@ -195,3 +204,5 @@ else
 	;;
 	esac
 fi
+
+clean
