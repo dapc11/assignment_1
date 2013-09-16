@@ -22,18 +22,20 @@ ENDDATE=
 
 usage() {
 cat << EOF
-Usage: $0 [-n N] [-h H | -d D] [-c | -2 | -r | -F | -t | -f] <filename>
+Usage: $0 [-n N] [-h H | -d D] [-c | -2 | -r | -F | -t] <filename>
 
 OPTIONS:
-	-n: LIMIT the number of results to N
+	-n: Limit the number of results to N
 	
 	-d: Limit the query to the last number of days.
 	-h: Limit the query to the last number of hours (< 24)
 
 	-c: Which IP address makes the most number of connection attempts?
-	-2: Which ip address makes the most number of successful connection attempts?
-	-r: What are the most common resultcodes and where do they come from?
-	-F: What are the most common resultcodes that indicates failures (no auth, not found etc)
+	-2: Which IP address makes the most number of successful connection 
+	attempts?
+	-r: What are the most common result codes and where do they come from?
+	-F: What are the most common result codes that indicates failures 
+	(no auth, not found etc)
 		and where do they come from?
 	-t: Which IP address get the most bytes sent to them?
 	
@@ -74,12 +76,13 @@ setTimeLimit() {
 	done < $TEMPOUTPUT
 	rm $TEMPOUTPUT
 	TEMPOUTPUT=$TEMPFILE
+	unset $TEMPFILE
 }
 
 #Function to limit how many rows that should be presented for the user, based on -n 
 showResults() {
 	if [ $NROFRESULTS -gt 0 ]; then
-		head -n $NROFRESULTS $FINALOUTPUT
+		cat $FINALOUTPUT | head -$NROFRESULTS
 	else
 		cat $FINALOUTPUT
 	fi
@@ -118,9 +121,9 @@ bytesTransfered () {
 
 	for i in "${!byteArray[@]}"
 	do
-		echo "$i ${byteArray[$i]}" >> ${FINALOUTPUT}
+		echo -e "$i\t${byteArray[$i]}" >> ${FINALOUTPUT}
 	done
-	showResults | sort -rn -k2 | head -n 1
+	cat $FINALOUTPUT | sort -rn -k2 | head -$NROFRESULTS
 }
 
 #Check if the file has a size >0
