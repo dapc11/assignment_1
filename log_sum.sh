@@ -44,7 +44,6 @@ OPTIONS:
 EOF
 }
 
-
 clean () {
 	rm $FINALOUTPUT
 	rm $TEMPOUTPUT
@@ -62,21 +61,22 @@ calcDays() {
 }
 
 setTimeLimit() {
-	echo
-	tac $FILENAME > $TEMPOUTPUT
+	if [[ ! -z $FILENAME ]]
+	then
+		tac $FILENAME > $TEMPOUTPUT
+	fi
 	while read row
 	do
 		rowtime=$(echo $row | awk '{print $4}' | sed 's/^\[//' | sed 's/\//\-/g' | sed 's/\:/ /')
 		rowtime=$(date -d "$rowtime" +%s)
-	if [ $rowtime -ge $ENDDATE ]; then
-    		echo $row >> ${TEMPFILE}
-	else
-		break
-	fi
+		if [ $rowtime -ge $ENDDATE ]; then
+	    		echo $row >> ${TEMPFILE}
+		else
+			break
+		fi
 	done < $TEMPOUTPUT
 	rm $TEMPOUTPUT
 	TEMPOUTPUT=$TEMPFILE
-	unset $TEMPFILE
 }
 
 #Function to limit how many rows that should be presented for the user, based on -n 
@@ -134,7 +134,7 @@ then
 fi
 
 #Handles the arguments that's passed into the script.
-while getopts “n:h:d:c2rFt” OPTION
+while getopts "n:h:d:c2rFt" OPTION
 do
 	case $OPTION in
 	n)
@@ -194,9 +194,14 @@ do
 	esac
 done
 
-#Shift the Option Index so that the filename gets on position $1
 shift `expr $OPTIND - 1`
 FILENAME=$1
+
+if [[ -z "$FILENAME" ]]; then
+	while read row; do
+		echo $row >> ${TEMPFILE}
+	done
+fi
 
 if [[ -z "$FUNCTION" ]]
 then
@@ -207,11 +212,11 @@ else
 	if [[ $NROFHOURS -gt 0 && $NROFHOURS -lt 24 ]]; then
 		calcHours
 		setTimeLimit	
-	elif [[ $NROFDAYS -gt 0 ]]; then
+	elif [ $NROFDAYS -gt 0 ]; then
 		calcDays
 		setTimeLimit
 	else
-		cat $FILENAME > $TEMPOUTPUT	
+		tac $FILENAME > $TEMPOUTPUT	
 	fi
 	case $FUNCTION in
 	c)
