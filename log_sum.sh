@@ -38,35 +38,35 @@ OPTIONS:
 	(no auth, not found etc)
 		and where do they come from?
 	-t: Which IP address get the most bytes sent to them?
-	
-	
-
 EOF
 }
 
 clean () {
-	rm $FINALOUTPUT
-	rm $TEMPOUTPUT
-	#rm $TEMPFILE
+	> $FINALOUTPUT
+	> $TEMPOUTPUT
+	> $TEMPFILE
 }	
 
 calcHours() {
-    STARTDATE=$(tail -1 ${FILENAME} | awk '{print $4}' | sed 's/^\[//' | sed 's/\//\-/g' | sed 's/\:/ /')
-    ENDDATE=$(date -d "$STARTDATE $NROFHOURS hours ago" +%s)
+	STARTDATE=$(tail -1 ${TEMPOUTPUT} | awk '{print $4}' | sed 's/^\[//' | sed 's/\//\-/g' | sed 's/\:/ /')
+	ENDDATE=$(date -d "$STARTDATE $NROFHOURS hours ago" +%s)
 }
 
 calcDays() {
-	STARTDATE=$(tail -1 ${FILENAME} | awk '{print $4}' | sed 's/^\[//' | sed 's/\//\-/g' | sed 's/\:/ /')
+	STARTDATE=$(tail -1 ${TEMPOUTPUT} | awk '{print $4}' | sed 's/^\[//' | sed 's/\//\-/g' | sed 's/\:/ /')
 	ENDDATE=$(date -d "$STARTDATE $NROFDAYS days ago" +%s)
 }
 
 setTimeLimit() {
-	if [[ ! -z $FILENAME ]]
-	then
-		tac $FILENAME > $TEMPOUTPUT
+	if [ -z "$FILENAME" ]; then 
+		> $TEMPFILE
+		tac $TEMPOUTPUT > $TEMPFILE
+		> $TEMPOUTPUT
+		cat $TEMPFILE > $TEMPOUTPUT
+		> $TEMPFILE
 	fi
 	while read row
-	do
+	do		
 		rowtime=$(echo $row | awk '{print $4}' | sed 's/^\[//' | sed 's/\//\-/g' | sed 's/\:/ /')
 		rowtime=$(date -d "$rowtime" +%s)
 		if [ $rowtime -ge $ENDDATE ]; then
@@ -75,7 +75,7 @@ setTimeLimit() {
 			break
 		fi
 	done < $TEMPOUTPUT
-	rm $TEMPOUTPUT
+	> $TEMPOUTPUT
 	TEMPOUTPUT=$TEMPFILE
 }
 
@@ -125,13 +125,6 @@ bytesTransfered () {
 	done
 	cat $FINALOUTPUT | sort -rn -k2 | head -$NROFRESULTS
 }
-
-#Check if the file has a size >0
-if [ ! -s $FILENAME ]
-then
-    echo "The file $FILENAME does not exist";
-    exit 1;
-fi
 
 #Handles the arguments that's passed into the script.
 while getopts "n:h:d:c2rFt" OPTION
@@ -197,12 +190,6 @@ done
 shift `expr $OPTIND - 1`
 FILENAME=$1
 
-if [[ -z "$FILENAME" ]]; then
-	while read row; do
-		echo $row >> ${TEMPFILE}
-	done
-fi
-
 if [[ -z "$FUNCTION" ]]
 then
 	echo 'No flags are set.'
@@ -210,13 +197,15 @@ then
 	exit
 else
 	if [[ $NROFHOURS -gt 0 && $NROFHOURS -lt 24 ]]; then
+		cat $FILENAME > $TEMPOUTPUT		
 		calcHours
 		setTimeLimit	
 	elif [ $NROFDAYS -gt 0 ]; then
+		cat $FILENAME > $TEMPOUTPUT
 		calcDays
 		setTimeLimit
 	else
-		tac $FILENAME > $TEMPOUTPUT	
+		tac $FILENAME > $TEMPOUTPUT
 	fi
 	case $FUNCTION in
 	c)
